@@ -6,11 +6,16 @@ import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
 class MainActivity : Activity() {
+    private lateinit var connectionStatus: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -72,7 +77,7 @@ class MainActivity : Activity() {
                 "Airtel Malawi" -> "Airtel is a mobile network operator. Internet access through its mobile network may use your active data bundle or applicable plan."
                 "TNM" -> "TNM is a mobile network operator. Internet access through its mobile network may use your active data bundle or applicable plan."
                 else -> "Wi-Fi access depends on the network owner and the internet service available at that location."
-            } + "\n\nThis prototype is for learning. It does not create free data or bypass network charges."
+            } + "\n\nThis prototype does not create free data or bypass network charges."
         }
 
         spinner.setSelection(0)
@@ -90,14 +95,67 @@ class MainActivity : Activity() {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
         }
 
-        val status = TextView(this).apply {
-            text = "Status: Learning mode — no VPN connection is active."
-            textSize = 14f
-            setTextColor(0xFF526171.toInt())
-            setPadding(0, padding, 0, 0)
+        val connectionTitle = TextView(this).apply {
+            text = "Your phone's connection"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFF1557A5.toInt())
+            setPadding(0, padding, 0, padding / 2)
         }
-        root.addView(status)
+        root.addView(connectionTitle)
+
+        connectionStatus = TextView(this).apply {
+            textSize = 15f
+            setTextColor(0xFF303943.toInt())
+        }
+        root.addView(connectionStatus)
+
+        val refreshButton = Button(this).apply {
+            text = "Check connection"
+            setOnClickListener { refreshConnectionStatus() }
+        }
+        root.addView(refreshButton)
+
+        val note = TextView(this).apply {
+            text = "The check reports your phone's network connection only. It does not measure data balance or whether your operator will charge you."
+            textSize = 13f
+            setTextColor(0xFF526171.toInt())
+            setPadding(0, padding / 2, 0, 0)
+        }
+        root.addView(note)
 
         setContentView(root)
+        refreshConnectionStatus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::connectionStatus.isInitialized) refreshConnectionStatus()
+    }
+
+    private fun refreshConnectionStatus() {
+        val manager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = manager.activeNetwork
+        val capabilities = network?.let { manager.getNetworkCapabilities(it) }
+
+        if (capabilities == null) {
+            connectionStatus.text = "No active network connection detected."
+            return
+        }
+
+        val connectionType = when {
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Mobile network"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+            else -> "Other network"
+        }
+        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        val validated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+
+        connectionStatus.text = when {
+            validated -> "Connected through: $connectionType\nInternet access: Available"
+            hasInternet -> "Connected through: $connectionType\nInternet access: Not yet confirmed"
+            else -> "Connected through: $connectionType\nInternet access: Not detected"
+        }
     }
 }
