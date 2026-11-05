@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Android
+local.properties
+*.iml
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing keys and secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Generated APKs
+*.apk
+*.aab
