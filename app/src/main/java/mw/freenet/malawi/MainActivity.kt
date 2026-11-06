@@ -13,6 +13,9 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -20,6 +23,10 @@ import android.net.NetworkCapabilities
 class MainActivity : Activity() {
     private lateinit var connectionStatus: TextView
     private lateinit var connectivityManager: ConnectivityManager
+    private lateinit var historyStatus: TextView
+    private var lastSnapshot: String? = null
+    private val connectionHistory = mutableListOf<String>()
+    private val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     private var callbackRegistered = false
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -155,6 +162,34 @@ class MainActivity : Activity() {
         }
         root.addView(note)
 
+        val historyTitle = TextView(this).apply {
+            text = "Connection activity history"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFF1557A5.toInt())
+            setPadding(0, padding, 0, padding / 2)
+        }
+        root.addView(historyTitle)
+
+        historyStatus = TextView(this).apply {
+            text = "No connection changes recorded yet."
+            textSize = 14f
+            setTextColor(0xFF303943.toInt())
+            setPadding(0, 0, 0, padding)
+        }
+        root.addView(historyStatus)
+
+        val clearHistoryButton = Button(this).apply {
+            text = "Clear history"
+            setOnClickListener {
+                connectionHistory.clear()
+                lastSnapshot = null
+                updateHistoryView()
+                Toast.makeText(this@MainActivity, "Connection history cleared.", Toast.LENGTH_SHORT).show()
+            }
+        }
+        root.addView(clearHistoryButton)
+
         val scrollView = ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = true
@@ -204,12 +239,26 @@ class MainActivity : Activity() {
         else -> null
     }
 
+    private fun updateHistoryView() {
+        historyStatus.text = if (connectionHistory.isEmpty()) "No connection changes recorded yet." else connectionHistory.asReversed().joinToString("\n")
+    }
+
+    private fun recordConnectionChange(snapshot: String) {
+        if (snapshot == lastSnapshot) return
+        lastSnapshot = snapshot
+        val time = timeFormatter.format(Date())
+        connectionHistory.add("$time  " + snapshot.replace("\n", " | "))
+        if (connectionHistory.size > 20) connectionHistory.removeAt(0)
+        updateHistoryView()
+    }
+
     private fun refreshConnectionStatus() {
         val activeNetwork = connectivityManager.activeNetwork
         val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
 
         if (capabilities == null) {
             connectionStatus.text = "Connection: No active network\nVPN status: Not detected\nUnderlying network: Not available\nInternet access: Not detected\n\nLive monitoring runs while this screen is open."
+            recordConnectionChange("No active network | VPN not detected | Internet not detected")
             return
         }
 
@@ -245,5 +294,6 @@ class MainActivity : Activity() {
         }
 
         connectionStatus.text = connectionLine + "\n" + vpnLine + "\n" + underlyingLine + "\n" + internetStatus + "\n\nA VPN does not remove mobile-data charges."
+        recordConnectionChange(connectionLine + "\n" + vpnLine + "\n" + underlyingLine + "\n" + internetStatus)
     }
 }
