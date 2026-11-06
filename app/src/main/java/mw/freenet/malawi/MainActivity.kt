@@ -179,7 +179,9 @@ class MainActivity : Activity() {
             return
         }
 
+        val vpnActive = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
         val connectionType = when {
+            vpnActive -> "VPN connection"
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Mobile network"
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
@@ -188,10 +190,12 @@ class MainActivity : Activity() {
         val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         val validated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
-        connectionStatus.text = when {
-            validated -> "Connected through: $connectionType\nInternet access: Available"
-            hasInternet -> "Connected through: $connectionType\nInternet access: Not yet confirmed"
-            else -> "Connected through: $connectionType\nInternet access: Not detected"
+        val vpnStatus = if (vpnActive) "VPN status: Active" else "VPN status: Not detected"
+        val internetStatus = when {
+            validated -> "Internet access: Available"
+            hasInternet -> "Internet access: Not yet confirmed"
+            else -> "Internet access: Not detected"
         }
+        connectionStatus.text = "Connection: $connectionType\n$vpnStatus\n$internetStatus\n\nA VPN does not remove mobile-data charges."
     }
 }
