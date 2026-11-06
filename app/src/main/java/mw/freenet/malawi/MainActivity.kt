@@ -178,11 +178,13 @@ class MainActivity : Activity() {
             setPadding(0, 0, 0, padding)
         }
         root.addView(historyStatus)
+        loadConnectionHistory()
 
         val clearHistoryButton = Button(this).apply {
             text = "Clear history"
             setOnClickListener {
                 connectionHistory.clear()
+                saveConnectionHistory()
                 lastSnapshot = null
                 updateHistoryView()
                 Toast.makeText(this@MainActivity, "Connection history cleared.", Toast.LENGTH_SHORT).show()
@@ -239,6 +241,21 @@ class MainActivity : Activity() {
         else -> null
     }
 
+    private fun saveConnectionHistory() {
+        getSharedPreferences("freenet_settings", Context.MODE_PRIVATE)
+            .edit()
+            .putString("connection_history", connectionHistory.joinToString("\n"))
+            .apply()
+    }
+
+    private fun loadConnectionHistory() {
+        val saved = getSharedPreferences("freenet_settings", Context.MODE_PRIVATE)
+            .getString("connection_history", "") ?: ""
+        connectionHistory.clear()
+        if (saved.isNotBlank()) connectionHistory.addAll(saved.lines().takeLast(20))
+        updateHistoryView()
+    }
+
     private fun updateHistoryView() {
         historyStatus.text = if (connectionHistory.isEmpty()) "No connection changes recorded yet." else connectionHistory.asReversed().joinToString("\n")
     }
@@ -249,6 +266,7 @@ class MainActivity : Activity() {
         val time = timeFormatter.format(Date())
         connectionHistory.add("$time  " + snapshot.replace("\n", " | "))
         if (connectionHistory.size > 20) connectionHistory.removeAt(0)
+        saveConnectionHistory()
         updateHistoryView()
     }
 
