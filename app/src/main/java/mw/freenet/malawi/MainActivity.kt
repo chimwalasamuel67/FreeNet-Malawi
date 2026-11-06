@@ -19,6 +19,8 @@ import java.util.Locale
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.TrafficStats
+import android.os.Process
 
 class MainActivity : Activity() {
     private lateinit var connectionStatus: TextView
@@ -192,6 +194,28 @@ class MainActivity : Activity() {
         }
         root.addView(clearHistoryButton)
 
+        val usageTitle = TextView(this).apply {
+            text = "Network usage counters"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFF1557A5.toInt())
+            setPadding(0, padding, 0, padding / 2)
+        }
+        root.addView(usageTitle)
+
+        val usageStatus = TextView(this).apply {
+            textSize = 14f
+            setTextColor(0xFF303943.toInt())
+        }
+        root.addView(usageStatus)
+
+        val refreshUsageButton = Button(this).apply {
+            text = "Refresh usage counters"
+            setOnClickListener { usageStatus.text = buildUsageSummary() }
+        }
+        root.addView(refreshUsageButton)
+        usageStatus.text = buildUsageSummary()
+
         val scrollView = ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = true
@@ -254,6 +278,24 @@ class MainActivity : Activity() {
         connectionHistory.clear()
         if (saved.isNotBlank()) connectionHistory.addAll(saved.lines().takeLast(20))
         updateHistoryView()
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes < 0L) return "Not reported by Android"
+        val mb = bytes / (1024.0 * 1024.0)
+        return String.format(Locale.getDefault(), "%.2f MB", mb)
+    }
+
+    private fun buildUsageSummary(): String {
+        val totalReceived = TrafficStats.getTotalRxBytes()
+        val totalSent = TrafficStats.getTotalTxBytes()
+        val appReceived = TrafficStats.getUidRxBytes(Process.myUid())
+        val appSent = TrafficStats.getUidTxBytes(Process.myUid())
+        return "Device-wide received: ${formatBytes(totalReceived)}\\n" +
+            "Device-wide sent: ${formatBytes(totalSent)}\\n\\n" +
+            "FreeNet Malawi received: ${formatBytes(appReceived)}\\n" +
+            "FreeNet Malawi sent: ${formatBytes(appSent)}\\n\\n" +
+            "These are Android traffic counters since the phone booted. Device-wide totals can include Wi-Fi and mobile traffic. FreeNet figures cover this app only, not Proton VPN or other apps. They are not TNM/Airtel bundle balances or billing records."
     }
 
     private fun updateHistoryView() {
