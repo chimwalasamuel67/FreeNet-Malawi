@@ -2,6 +2,7 @@ package mw.freenet.malawi
 
 import android.app.Activity
 import android.os.Bundle
+import android.content.Intent
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewGroup
@@ -10,6 +11,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 
@@ -43,10 +45,44 @@ class MainActivity : Activity() {
         }
         root.addView(subtitle)
 
+        val vpnTitle = TextView(this).apply {
+            text = "VPN provider"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFF1557A5.toInt())
+        }
+        root.addView(vpnTitle)
+
+        val vpnDescription = TextView(this).apply {
+            text = "FreeNet Malawi currently uses Proton VPN as an external provider. Install Proton VPN and sign in before opening it here."
+            textSize = 14f
+            setTextColor(0xFF303943.toInt())
+            setPadding(0, padding / 3, 0, padding / 2)
+        }
+        root.addView(vpnDescription)
+
+        val openVpnButton = Button(this).apply {
+            text = "Open Proton VPN"
+            setOnClickListener {
+                val launchIntent = packageManager.getLaunchIntentForPackage("ch.protonvpn.android")
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                } else {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Proton VPN is not installed. Install it from Google Play when you have internet access.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+        root.addView(openVpnButton)
+
         val label = TextView(this).apply {
             text = "Choose a network to learn about:"
             textSize = 16f
             setTextColor(0xFF202830.toInt())
+            setPadding(0, padding, 0, 0)
         }
         root.addView(label)
 
