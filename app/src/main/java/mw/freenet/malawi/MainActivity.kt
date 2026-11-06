@@ -21,6 +21,9 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.TrafficStats
 import android.os.Process
+import android.os.SystemClock
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : Activity() {
     private lateinit var connectionStatus: TextView
@@ -215,6 +218,74 @@ class MainActivity : Activity() {
         }
         root.addView(refreshUsageButton)
         usageStatus.text = buildUsageSummary()
+
+        val qualityTitle = TextView(this).apply {
+            text = "Connection quality monitor"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFF1557A5.toInt())
+            setPadding(0, padding, 0, padding / 2)
+        }
+        root.addView(qualityTitle)
+
+        val qualityStatus = TextView(this).apply {
+            text = "Response time: Not tested\\nQuality: Not measured"
+            textSize = 14f
+            setTextColor(0xFF303943.toInt())
+        }
+        root.addView(qualityStatus)
+
+        val testQualityButton = Button(this).apply {
+            text = "Test connection quality"
+            setOnClickListener {
+                isEnabled = false
+                text = "Testing..."
+                qualityStatus.text = "Testing internet response time..."
+                Thread {
+                    var result: String
+                    var connection: HttpURLConnection? = null
+                    try {
+                        val started = SystemClock.elapsedRealtime()
+                        connection = (URL("https://connectivitycheck.gstatic.com/generate_204").openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 7000
+                            readTimeout = 7000
+                            instanceFollowRedirects = true
+                        }
+                        val responseCode = connection.responseCode
+                        val elapsed = SystemClock.elapsedRealtime() - started
+                        result = if (responseCode == 204 || responseCode == 200) {
+                            val rating = when {
+                                elapsed < 150 -> "Good"
+                                elapsed < 400 -> "Fair"
+                                else -> "Slow"
+                            }
+                            "Response time: ${elapsed} ms\\nQuality: $rating\\nTest endpoint: Google connectivity check"
+                        } else {
+                            "Test could not be completed (server response $responseCode). Try again."
+                        }
+                    } catch (_: Exception) {
+                        result = "Test unavailable. Check your internet connection and try again."
+                    } finally {
+                        connection?.disconnect()
+                    }
+                    runOnUiThread {
+                        qualityStatus.text = result
+                        testQualityButton.isEnabled = true
+                        testQualityButton.text = "Test connection quality"
+                    }
+                }.start()
+            }
+        }
+        root.addView(testQualityButton)
+
+        val qualityNote = TextView(this).apply {
+            text = "This test measures the time for one HTTPS request to a test server. Results depend on the route, server and VPN, and are not a full speed test or a guarantee of network stability. A small amount of data is used."
+            textSize = 13f
+            setTextColor(0xFF526171.toInt())
+            setPadding(0, padding / 3, 0, padding)
+        }
+        root.addView(qualityNote)
 
         val scrollView = ScrollView(this).apply {
             isFillViewport = true
