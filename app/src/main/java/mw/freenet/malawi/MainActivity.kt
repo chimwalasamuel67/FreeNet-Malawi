@@ -291,10 +291,10 @@ class MainActivity : Activity() {
         val totalSent = TrafficStats.getTotalTxBytes()
         val appReceived = TrafficStats.getUidRxBytes(Process.myUid())
         val appSent = TrafficStats.getUidTxBytes(Process.myUid())
-        return "Device-wide received: ${formatBytes(totalReceived)}\\n" +
-            "Device-wide sent: ${formatBytes(totalSent)}\\n\\n" +
-            "FreeNet Malawi received: ${formatBytes(appReceived)}\\n" +
-            "FreeNet Malawi sent: ${formatBytes(appSent)}\\n\\n" +
+        return "Device-wide received: ${formatBytes(totalReceived)}\n" +
+            "Device-wide sent: ${formatBytes(totalSent)}\n\n" +
+            "FreeNet Malawi received: ${formatBytes(appReceived)}\n" +
+            "FreeNet Malawi sent: ${formatBytes(appSent)}\n\n" +
             "These are Android traffic counters since the phone booted. Device-wide totals can include Wi-Fi and mobile traffic. FreeNet figures cover this app only, not Proton VPN or other apps. They are not TNM/Airtel bundle balances or billing records."
     }
 
