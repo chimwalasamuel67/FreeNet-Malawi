@@ -235,7 +235,8 @@ class MainActivity : Activity() {
         }
         root.addView(qualityStatus)
 
-        val testQualityButton = Button(this).apply {
+        lateinit var testQualityButton: Button
+        testQualityButton = Button(this).apply {
             text = "Test connection quality"
             setOnClickListener {
                 isEnabled = false
