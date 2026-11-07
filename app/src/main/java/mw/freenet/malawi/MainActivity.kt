@@ -235,7 +235,6 @@ class MainActivity : Activity() {
         val refreshUsageButton = Button(this).apply {
             text = "Refresh usage counters"
             setOnClickListener { usageStatus.text = buildUsageSummary() }
-        updateDashboard()
         }
         root.addView(refreshUsageButton)
         usageStatus.text = buildUsageSummary()
@@ -393,7 +392,6 @@ class MainActivity : Activity() {
             "These are Android traffic counters since the phone booted. Device-wide totals can include Wi-Fi and mobile traffic. FreeNet figures cover this app only, not Proton VPN or other apps. They are not TNM/Airtel bundle balances or billing records."
     }
 
-    private fun updateHistoryView() {
     private fun updateDashboard() {
         if (!::dashboardStatus.isInitialized) return
         val active = connectivityManager.activeNetwork
@@ -413,6 +411,7 @@ class MainActivity : Activity() {
             "\\nLatest response test: $latestQuality"
     }
 
+    private fun updateHistoryView() {
         historyStatus.text = if (connectionHistory.isEmpty()) "No connection changes recorded yet." else connectionHistory.asReversed().joinToString("\n")
     }
 
