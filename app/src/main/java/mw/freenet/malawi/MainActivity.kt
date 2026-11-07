@@ -29,6 +29,8 @@ class MainActivity : Activity() {
     private lateinit var connectionStatus: TextView
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var historyStatus: TextView
+    private lateinit var dashboardStatus: TextView
+    private var latestQuality = "Not tested"
     private var lastSnapshot: String? = null
     private val connectionHistory = mutableListOf<String>()
     private val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
@@ -74,6 +76,24 @@ class MainActivity : Activity() {
             setPadding(0, padding / 2, 0, padding)
         }
         root.addView(subtitle)
+
+        val dashboardTitle = TextView(this).apply {
+            text = "Live connection dashboard"
+            textSize = 20f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(0xFF1557A5.toInt())
+            setPadding(0, padding, 0, padding / 3)
+        }
+        root.addView(dashboardTitle)
+
+        dashboardStatus = TextView(this).apply {
+            text = "Checking connection..."
+            textSize = 15f
+            setTextColor(0xFF303943.toInt())
+            setPadding(padding / 2, padding / 2, padding / 2, padding / 2)
+            setBackgroundColor(0xFFE5EDF7.toInt())
+        }
+        root.addView(dashboardStatus)
 
         val vpnTitle = TextView(this).apply {
             text = "VPN provider"
@@ -215,6 +235,7 @@ class MainActivity : Activity() {
         val refreshUsageButton = Button(this).apply {
             text = "Refresh usage counters"
             setOnClickListener { usageStatus.text = buildUsageSummary() }
+        updateDashboard()
         }
         root.addView(refreshUsageButton)
         usageStatus.text = buildUsageSummary()
@@ -272,6 +293,8 @@ class MainActivity : Activity() {
                     }
                     runOnUiThread {
                         qualityStatus.text = result
+                        latestQuality = if (result.startsWith("Response time:")) result.substringBefore("\\n") else "Unavailable"
+                        updateDashboard()
                         testQualityButton.isEnabled = true
                         testQualityButton.text = "Test connection quality"
                     }
@@ -371,6 +394,25 @@ class MainActivity : Activity() {
     }
 
     private fun updateHistoryView() {
+    private fun updateDashboard() {
+        if (!::dashboardStatus.isInitialized) return
+        val active = connectivityManager.activeNetwork
+        val caps = active?.let { connectivityManager.getNetworkCapabilities(it) }
+        val vpn = caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        val network = when {
+            caps == null -> "No active network"
+            vpn -> "VPN active"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Mobile network"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+            else -> "Other network"
+        }
+        val internet = if (caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true) "Available" else "Not confirmed"
+        dashboardStatus.text = "Network: $network\\nInternet: $internet\\nVPN: " +
+            (if (vpn) "Active" else "Not detected") +
+            "\\nLatest response test: $latestQuality"
+    }
+
         historyStatus.text = if (connectionHistory.isEmpty()) "No connection changes recorded yet." else connectionHistory.asReversed().joinToString("\n")
     }
 
@@ -391,6 +433,7 @@ class MainActivity : Activity() {
         if (capabilities == null) {
             connectionStatus.text = "Connection: No active network\nVPN status: Not detected\nUnderlying network: Not available\nInternet access: Not detected\n\nLive monitoring runs while this screen is open."
             recordConnectionChange("No active network | VPN not detected | Internet not detected")
+            updateDashboard()
             return
         }
 
@@ -427,5 +470,6 @@ class MainActivity : Activity() {
 
         connectionStatus.text = connectionLine + "\n" + vpnLine + "\n" + underlyingLine + "\n" + internetStatus + "\n\nA VPN does not remove mobile-data charges."
         recordConnectionChange(connectionLine + "\n" + vpnLine + "\n" + underlyingLine + "\n" + internetStatus)
+        updateDashboard()
     }
 }
